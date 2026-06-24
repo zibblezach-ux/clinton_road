@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Road Condition Map — Clinton County{% endblock %}
+
+{% block content %}
+<div class="map-container" id="map-wrap">
+  <div id="map" style="width:100%;height:100%;"></div>
+
+  <div class="map-sidebar">
+    <!-- Legend -->
+    <div class="map-legend">
+      <h3>🗺️ Road Conditions</h3>
+      <div class="legend-row"><div class="legend-swatch" style="background:#1B5E20;"></div> PASER 5 — Excellent</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#558B2F;"></div> PASER 4 — Good</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#F57F17;"></div> PASER 3 — Fair</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#BF360C;"></div> PASER 2 — Poor</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#B71C1C;"></div> PASER 1 — Failed</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#888;"></div> No Data</div>
+      <hr style="margin:10px 0;border-color:var(--border);">
+      <div class="legend-row"><div style="width:14px;height:14px;border-radius:50%;background:#D4703A;border:2px solid #fff;"></div> Citizen Report</div>
+      {% if open_complaints > 0 %}
+      <div style="font-size:12px;color:var(--orange);font-weight:700;margin-top:6px;">{{ open_complaints }} open report{{ 's' if open_complaints != 1 }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Road info panel (shown on click) -->
+    <div class="map-info-panel card" id="info-panel">
+      <div id="info-content">
+        <p style="color:var(--slate-light);font-size:14px;">Click a road segment to see details.</p>
+      </div>
+    </div>
+
+    <!-- Report button -->
+    <a href="{{ url_for('report') }}" class="btn btn-primary" style="width:100%;justify-content:center;">
+      📢 Report a Road Problem
+    </a>
+
+    <div style="font-size:11px;color:var(--slate-light);text-align:center;padding:4px 0;">
+      Data refreshed weekly from working dataset.<br>
+      Assessment: LiDAR + aerial imagery, June 2026.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PASER_COLORS = {
+  5: '#1B5E20', 4: '#558B2F', 3: '#F57F17', 2: '#BF360C', 1: '#B71C1C'
+};
+const PASER_LABELS = {
+  5: 'Excellent', 4: 'Good', 3: 'Fair', 2: 'Poor', 1: 'Failed'
+};
+
+// Clinton County center
+const map = L.map('map').setView([39.63, -94.35], 11);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 19
+}).addTo(map);
+
+let roadsLayer = null;
+let complaintsLayer = null;
+const infoPanel = document.getElementById('info-panel');
+const infoContent = document.getElementById('info-content');
+
+// Load roads GeoJSON
+fetch('/api/public/roads')
+  .then(r => r.json())
+  .then(gj => {
+    if (!gj.features || gj.features.length === 0) {
+      infoContent.innerHTML = '<p style="color:var(--orange-light);font-size:13px;">⚠️ No road data loaded yet. Place your GeoJSON in <code>data/roads_quality_combined.geojson</code></p>';
+      infoPanel.classList.add('active');
+      return;
+    }
+    roadsLayer = L.geoJSON(gj, {
+      style: feature => {
+        const p = feature.properties;
+        const paser = parseInt(p.paser_combined || p.paser_lidar || 0);
+        return {
+          color: PASER_COLORS[paser] || '#888',
+          weight: 3,
+          opacity: 0.85
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties;
+        const paser = parseInt(p.paser_combined || p.paser_lidar || 0);
+        layer.on('click', () => {
+          const label = PASER_LABELS[paser] || 'Unknown';
+          const colorDot = PASER_COLORS[paser] || '#888';
+          infoContent.innerHTML = `
+            <h3 style="margin-bottom:10px;font-size:15px;">📍 ${p.FULLNAME || p.MTFCC || 'Road Segment'}</h3>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <div style="width:14px;height:14px;border-radius:50%;background:${colorDot};flex-shrink:0;"></div>
+              <strong>PASER ${paser} — ${label}</strong>
+            </div>
+            ${p.surface_condition ? `<div style="font-size:13px;margin-bottom:4px;">🛣️ Surface: <strong>${p.surface_condition}</strong></div>` : ''}
+            ${p.drainage_imagery ? `<div style="font-size:13px;margin-bottom:4px;">💧 Drainage: <strong>${p.drainage_imagery}</strong></div>` : ''}
+            ${p.visible_distress ? `<div style="font-size:13px;margin-bottom:4px;">⚠️ Distress: ${p.visible_distress}</div>` : ''}
+            ${p.ai_notes ? `<div style="font-size:12px;color:var(--slate-light);margin-top:8px;font-style:italic;">${p.ai_notes}</div>` : ''}
+            <div style="margin-top:12px;">
+              <a href="/report?road=${encodeURIComponent(p.FULLNAME || '')}" class="btn btn-primary btn-sm">📢 Report Issue</a>
+            </div>
+          `;
+          infoPanel.classList.add('active');
+          layer.setStyle({ weight: 5, opacity: 1 });
+          if (roadsLayer) roadsLayer.resetStyle();
+          layer.setStyle({ weight: 5, color: colorDot, opacity: 1 });
+        });
+      }
+    }).addTo(map);
+
+    if (roadsLayer.getBounds().isValid()) {
+      map.fitBounds(roadsLayer.getBounds(), { padding: [20, 20] });
+    }
+  });
+
+// Load public complaints
+fetch('/api/public/complaints')
+  .then(r => r.json())
+  .then(gj => {
+    if (!gj.features || gj.features.length === 0) return;
+    const complaintIcon = L.divIcon({
+      html: '<div style="font-size:20px;line-height:1;">📢</div>',
+      className: '',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+    complaintsLayer = L.geoJSON(gj, {
+      pointToLayer: (f, latlng) => L.marker(latlng, { icon: complaintIcon }),
+      onEachFeature: (f, layer) => {
+        const p = f.properties;
+        layer.bindPopup(`
+          <strong>${p.road}</strong><br>
+          <em>${p.category}</em><br>
+          Status: ${p.status}<br>
+          <span style="font-size:11px;color:#888;">Ref: ${p.id} · ${p.date}</span>
+        `);
+      }
+    }).addTo(map);
+  });
+
+map.on('click', () => {
+  if (roadsLayer) roadsLayer.resetStyle(null);
+});
+</script>
+{% endblock %}

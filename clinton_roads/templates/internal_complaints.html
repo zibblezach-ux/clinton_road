@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Complaints — Clinton County Staff{% endblock %}
+{% block content %}
+<div class="app-layout">
+  {% include 'partials/sidebar.html' %}
+  <div class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+      <h1 style="font-size:30px;">📢 Complaints</h1>
+      <div style="display:flex;gap:8px;">
+        <a href="?status=all" class="btn btn-sm {% if status_filter=='all' %}btn-primary{% else %}btn-outline{% endif %}">All</a>
+        <a href="?status=Open" class="btn btn-sm {% if status_filter=='Open' %}btn-red{% else %}btn-outline{% endif %}">Open</a>
+        <a href="?status=In Progress" class="btn btn-sm {% if status_filter=='In Progress' %}btn-orange{% else %}btn-outline{% endif %}">In Progress</a>
+        <a href="?status=Resolved" class="btn btn-sm {% if status_filter=='Resolved' %}btn-green{% else %}btn-outline{% endif %}">Resolved</a>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ref</th><th>Road</th><th>Category</th><th>Reporter</th><th>Date</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {% for c in complaints %}
+            <tr>
+              <td style="font-weight:700;color:var(--bark);">#CC-{{ '%04d'|format(c.id) }}</td>
+              <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ c.road_name }}</td>
+              <td>{{ c.category }}</td>
+              <td style="font-size:13px;">{{ c.reporter_name }}</td>
+              <td style="font-size:13px;color:var(--slate-light);white-space:nowrap;">{{ c.submitted_at.strftime('%b %d, %Y') }}</td>
+              <td><span class="badge badge-{{ 'open' if c.status=='Open' else 'progress' if 'Progress' in c.status else 'resolved' }}">{{ c.status }}</span></td>
+              <td><a href="{{ url_for('internal_complaint_detail', complaint_id=c.id) }}" class="btn btn-outline btn-sm">View →</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--slate-light);">No complaints found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+<nav class="sidebar">
+  <div class="sidebar-who">
+    <div class="sidebar-who-name">{{ current_user.username }}</div>
+    <div class="sidebar-who-role">{{ current_user.role|capitalize }} · Road & Bridge</div>
+  </div>
+
+  <div class="sidebar-section">Operations</div>
+  <a href="{{ url_for('internal_dashboard') }}" class="sidebar-link {% if request.endpoint=='internal_dashboard' %}active{% endif %}">
+    <span class="icon">📊</span> Dashboard
+  </a>
+  <a href="{{ url_for('internal_map') }}" class="sidebar-link {% if request.endpoint=='internal_map' %}active{% endif %}">
+    <span class="icon">🗺️</span> Master Road Map
+  </a>
+  <a href="{{ url_for('internal_complaints') }}" class="sidebar-link {% if 'complaint' in request.endpoint %}active{% endif %}">
+    <span class="icon">📢</span> Complaints
+  </a>
+
+  <div class="sidebar-section">Export</div>
+  <a href="{{ url_for('export_roads_csv') }}" class="sidebar-link">
+    <span class="icon">📥</span> All Roads CSV
+  </a>
+  <a href="{{ url_for('export_open_tickets_csv') }}" class="sidebar-link">
+    <span class="icon">📥</span> Open Tickets CSV
+  </a>
+  <a href="{{ url_for('export_closed_tickets_csv') }}" class="sidebar-link">
+    <span class="icon">📥</span> Closed Tickets CSV
+  </a>
+
+  <div class="sidebar-section">Reference</div>
+  <a href="{{ url_for('paser_map_viewer') }}" target="_blank" class="sidebar-link">
+    <span class="icon">📡</span> PASER Assessment GIS
+  </a>
+  <a href="{{ url_for('activity_map') }}" target="_blank" class="sidebar-link">
+    <span class="icon">🌐</span> Public Map (preview)
+  </a>
+
+  {% if current_user.role == 'admin' %}
+  <div class="sidebar-section">Admin</div>
+  <a href="{{ url_for('admin_users') }}" class="sidebar-link {% if request.endpoint=='admin_users' %}active{% endif %}">
+    <span class="icon">👥</span> Users
+  </a>
+  {% endif %}
+
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:12px 0;border-top:1px solid rgba(255,255,255,0.06);">
+    <a href="{{ url_for('change_password') }}" class="sidebar-link" style="font-size:13px;">
+      <span class="icon">🔑</span> Change Password
+    </a>
+    <a href="{{ url_for('logout') }}" class="sidebar-link" style="font-size:13px;">
+      <span class="icon">🚪</span> Sign Out
+    </a>
+  </div>
+</nav>

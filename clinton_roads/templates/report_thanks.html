@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Report Submitted{% endblock %}
+{% block content %}
+<div class="thanks-wrap">
+  <span class="thanks-icon">✅</span>
+  <h1>Report Received</h1>
+  <p style="color:var(--slate);font-size:16px;margin-bottom:8px;">Your report has been sent directly to the Clinton County Road & Bridge crew.</p>
+  <div class="thanks-ref">#CC-{{ '%04d'|format(complaint.id) }}</div>
+  <div style="background:var(--cream);border-radius:var(--radius);padding:20px;text-align:left;margin:20px 0;border:1px solid var(--border);">
+    <div style="font-size:13px;color:var(--slate-light);margin-bottom:6px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;">Your report</div>
+    <div style="font-weight:700;font-size:16px;">{{ complaint.road_name }}</div>
+    <div style="color:var(--slate);margin-top:2px;">{{ complaint.category }}</div>
+    <div style="font-size:13px;color:var(--slate-light);margin-top:6px;">{{ complaint.description }}</div>
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+    <a href="{{ url_for('activity_map') }}" class="btn btn-primary">View Road Map</a>
+    <a href="{{ url_for('report') }}" class="btn btn-outline">Report Another Problem</a>
+  </div>
+</div>
+{% endblock %}

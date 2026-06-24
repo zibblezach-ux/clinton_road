@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Clinton County Road & Bridge{% endblock %}
+
+{% block content %}
+
+<div style="display:flex;align-items:stretch;height:160px;width:100%;background:#1C1610;">
+  <div style="width:220px;height:160px;flex-shrink:0;background:#EDE8E0;overflow:hidden;display:flex;align-items:stretch;">
+    <img src="{{ url_for('static', filename='images/logo.png') }}"
+         alt="Clinton County Missouri Rural Road and Bridge"
+         style="width:220px;height:160px;object-fit:cover;object-position:center;display:block;filter:hue-rotate(200deg) saturate(0.7) brightness(0.75) sepia(0.4);">
+  </div>
+  <div style="height:160px;flex-shrink:0;background:#1C1610;display:flex;flex-direction:column;justify-content:center;padding:0 32px;box-sizing:border-box;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#C4994A;margin-bottom:6px;">Clinton County, Missouri</div>
+    <h1 style="font-size:42px;color:#F5F0E8;line-height:1.0;margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;font-weight:900;">Road &amp; Bridge<br>Department</h1>
+    <p style="color:rgba(245,240,232,0.65);font-size:13px;line-height:1.5;">Maintaining 1,409 miles of county roads.</p>
+  </div>
+</div>
+
+<div class="page">
+
+  {% if active_roads > 0 or open_count > 0 %}
+  <div class="live-bar">
+    <span class="live-dot"></span>
+    <strong>Live:</strong>
+    {% if active_roads > 0 %}<span>{{ active_roads }} road{{ 's' if active_roads != 1 }} with active maintenance</span>{% endif %}
+    {% if open_count > 0 %}<span class="bar-sep">&nbsp;·&nbsp;</span><span>{{ open_count }} open complaint{{ 's' if open_count != 1 }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  <div class="home-cards">
+
+    <a href="{{ url_for('activity_map') }}" class="home-card">
+      <div class="home-card-art">
+        <img src="{{ url_for('static', filename='images/card_activity.jpg') }}"
+             alt="Road and Bridge Maintenance Activity">
+      </div>
+      <div class="home-card-body">
+        <div class="home-card-tag" style="background:#FFEBEE;color:#C62828;">Live Map</div>
+        <h2>Road &amp; Bridge<br>Maintenance Activity</h2>
+        <p>Every county road on the map. Active maintenance shown in red. Click any road for its full history — from first assessment to latest crew activity.</p>
+        <div class="home-card-cta" style="color:#C62828;">
+          Open Activity Map
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <a href="{{ url_for('report') }}" class="home-card">
+      <div class="home-card-art">
+        <img src="{{ url_for('static', filename='images/card_report.jpg') }}"
+             alt="Submit a Road or Bridge Problem">
+      </div>
+      <div class="home-card-body">
+        <div class="home-card-tag" style="background:#FBE9E7;color:#D4703A;">Report Now</div>
+        <h2>Submit a Road or<br>Bridge Problem</h2>
+        <p>Washout. Bad pothole. Culvert washed out. Dangerous bridge. If you saw it on a Clinton County road, our crew needs to know.</p>
+        <div class="home-card-cta" style="color:#D4703A;">
+          File a Report
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+  </div>
+
+  <div class="home-footer">
+    <div>Clinton County Road &amp; Bridge Department &nbsp;·&nbsp; Plattsburg, MO</div>
+    <a href="{{ url_for('login') }}">Staff Login</a>
+  </div>
+
+</div>
+{% endblock %}

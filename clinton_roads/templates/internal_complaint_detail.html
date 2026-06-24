@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}#CC-{{ '%04d'|format(complaint.id) }} — Clinton County{% endblock %}
+{% block content %}
+<div class="app-layout">
+  {% include 'partials/sidebar.html' %}
+  <div class="main-content">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+      <a href="{{ url_for('internal_complaints') }}" class="btn btn-outline btn-sm">← Back</a>
+      <h1 style="font-size:26px;">Complaint #CC-{{ '%04d'|format(complaint.id) }}</h1>
+      <span class="badge badge-{{ 'open' if complaint.status=='Open' else 'progress' if 'Progress' in complaint.status else 'resolved' }}">{{ complaint.status }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="card">
+        <div class="card-header"><span>📋</span><h3>Report Details</h3></div>
+        <div class="card-body" style="font-size:14px;line-height:2.1;">
+          <div>📍 <strong>Road:</strong> {{ complaint.road_name }}</div>
+          <div>⚠️ <strong>Category:</strong> {{ complaint.category }}</div>
+          <div>📅 <strong>Submitted:</strong> {{ complaint.submitted_at.strftime('%B %d, %Y') }}</div>
+          <div>👤 <strong>Reporter:</strong> {{ complaint.reporter_name }}</div>
+          <div>🏠 <strong>Address:</strong> {{ complaint.reporter_address }}</div>
+          {% if complaint.segment_id %}<div>🔗 <strong>Road:</strong> <a href="{{ url_for('internal_road_detail', segment_id=complaint.segment_id) }}" style="color:var(--field);">Open Maintenance Log</a></div>{% endif %}
+          <div style="margin-top:12px;background:var(--cream);padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);">{{ complaint.description }}</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span>🔧</span><h3>Update Status</h3></div>
+        <div class="card-body">
+          <form method="POST">
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select name="status" class="form-control">
+                <option value="Open" {{ 'selected' if complaint.status=='Open' }}>🔴 Open</option>
+                <option value="In Progress" {{ 'selected' if complaint.status=='In Progress' }}>🟡 In Progress</option>
+                <option value="Resolved" {{ 'selected' if complaint.status=='Resolved' }}>✅ Resolved</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Internal Notes</label>
+              <textarea name="internal_notes" class="form-control" rows="5" placeholder="Crew notes, work order, resolution...">{{ complaint.internal_notes or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">💾 Save</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

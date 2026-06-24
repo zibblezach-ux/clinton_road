@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: clinton-county-roads
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.11.0
+
+  - type: cron
+    name: clinton-weekly-snapshot
+    runtime: python
+    schedule: "0 0 * * 0"   # Every Sunday at midnight
+    buildCommand: pip install -r requirements.txt
+    startCommand: python cron_snapshot.py
+    envVars:
+      - key: SECRET_KEY
+        fromService:
+          name: clinton-county-roads
+          type: web
+          envVarKey: SECRET_KEY
+      - key: DATABASE_URL
+        fromService:
+          name: clinton-county-roads
+          type: web
+          envVarKey: DATABASE_URL

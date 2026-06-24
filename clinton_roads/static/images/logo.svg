@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 380" role="img" aria-label="Clinton County Missouri Rural Road and Bridge">
+  <defs>
+    <style>
+      .navy { fill: #1C1610; }
+      .brown { fill: #5C4A2A; }
+      .gold  { fill: #C4994A; }
+      .straw { fill: #D4B878; }
+      .cream { fill: #F5F0E8; }
+      .tan   { fill: #A08060; }
+    </style>
+  </defs>
+
+  <!-- C arc - outer dark brown -->
+  <path d="M148,30 A110,110 0 1,0 148,250 L148,218 A78,78 0 1,1 148,62 Z" class="brown"/>
+  <!-- C arc - middle gold -->
+  <path d="M148,50 A90,90 0 1,0 148,230 L148,202 A62,62 0 1,1 148,78 Z" class="gold"/>
+  <!-- C arc - inner straw -->
+  <path d="M148,72 A68,68 0 1,0 148,208 L148,184 A44,44 0 1,1 148,96 Z" class="straw"/>
+
+  <!-- CLINTON COUNTY text -->
+  <text x="190" y="118" font-family="'Arial Black',sans-serif" font-weight="900" font-size="46" class="brown">CLINTON COUNTY</text>
+
+  <!-- MISSOURI line with rules -->
+  <line x1="190" y1="132" x2="490" y2="132" stroke="#A08060" stroke-width="1.5"/>
+  <text x="290" y="152" font-family="Arial,sans-serif" font-weight="700" font-size="22" letter-spacing="4" class="tan" text-anchor="middle">MISSOURI</text>
+  <line x1="190" y1="158" x2="490" y2="158" stroke="#A08060" stroke-width="1.5"/>
+
+  <!-- RURAL vertical badge -->
+  <rect x="30" y="188" width="38" height="130" rx="5" class="brown"/>
+  <text x="49" y="305" font-family="'Arial Black',sans-serif" font-weight="900" font-size="17" fill="#F5F0E8" text-anchor="middle" writing-mode="tb" transform="rotate(180,49,248)">RURAL</text>
+
+  <!-- ROAD big letters -->
+  <text x="72" y="300" font-family="'Arial Black',sans-serif" font-weight="900" font-size="115" class="brown">R</text>
+  <text x="145" y="300" font-family="'Arial Black',sans-serif" font-weight="900" font-size="115" class="brown">O</text>
+  <!-- Road perspective inside the O -->
+  <polygon points="205,220 225,220 240,295 190,295" fill="#F5F0E8"/>
+  <line x1="215" y1="230" x2="213" y2="295" stroke="#C4994A" stroke-width="4" stroke-dasharray="8,6"/>
+  <text x="272" y="300" font-family="'Arial Black',sans-serif" font-weight="900" font-size="115" class="brown">A</text>
+  <!-- Bridge illustration inside D -->
+  <text x="360" y="300" font-family="'Arial Black',sans-serif" font-weight="900" font-size="115" class="brown">D</text>
+  <path d="M368,260 Q410,218 452,260" stroke="#C4994A" stroke-width="3" fill="none"/>
+  <line x1="380" y1="260" x2="380" y2="242" stroke="#C4994A" stroke-width="2"/>
+  <line x1="395" y1="256" x2="395" y2="234" stroke="#C4994A" stroke-width="2"/>
+  <line x1="410" y1="253" x2="410" y2="228" stroke="#C4994A" stroke-width="2"/>
+  <line x1="425" y1="256" x2="425" y2="234" stroke="#C4994A" stroke-width="2"/>
+  <line x1="440" y1="260" x2="440" y2="242" stroke="#C4994A" stroke-width="2"/>
+  <!-- Green hill under bridge -->
+  <ellipse cx="410" cy="302" rx="52" ry="12" fill="#6B8E4E" opacity="0.7"/>
+
+  <!-- & BRIDGE bar -->
+  <rect x="72" y="312" width="400" height="48" rx="6" class="brown"/>
+  <text x="272" y="346" font-family="'Arial Black',sans-serif" font-weight="900" font-size="30" fill="#F5F0E8" text-anchor="middle" letter-spacing="6">&amp; BRIDGE</text>
+
+  <!-- Gold accent line -->
+  <line x1="72" y1="308" x2="472" y2="308" stroke="#C4994A" stroke-width="2.5"/>
+</svg>

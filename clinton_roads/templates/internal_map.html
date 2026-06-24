@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% block title %}Master Road Map — Clinton County Staff{% endblock %}
+{% block content %}
+<div class="app-layout">
+  {% include 'partials/sidebar.html' %}
+  <div style="flex:1;position:relative;display:flex;">
+    <div id="map" style="flex:1;height:calc(100vh - 58px);"></div>
+
+    <div class="map-sidebar" style="height:calc(100vh - 58px);">
+      <div class="map-sidebar-header">
+        <h2>🔒 Master Road Map</h2>
+        <p>Live data · Click any road to log maintenance</p>
+      </div>
+
+      <div class="map-legend">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-light);margin-bottom:8px;">Road Condition</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#2E7D32;"></div> Good (PASER 4–5)</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#F9A825;"></div> Fair (PASER 3)</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#C62828;"></div> Poor (PASER 1–2)</div>
+        <div class="legend-row"><div style="width:20px;height:10px;border:3px dashed #FF6B00;border-radius:2px;flex-shrink:0;"></div> Open Ticket</div>
+      </div>
+
+      <!-- Search box -->
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--warm-white);position:relative;">
+        <div style="position:relative;">
+          <input type="text" id="road-search" placeholder="Search by road name..." autocomplete="off"
+            style="width:100%;padding:9px 14px 9px 36px;border:2px solid var(--border);border-radius:var(--radius-sm);
+                   font-family:'Barlow',sans-serif;font-size:14px;background:#fff;color:var(--dirt);">
+          <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
+        </div>
+        <div id="search-results" style="display:none;position:absolute;left:16px;right:16px;background:#fff;border:1px solid var(--border);
+             border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:2000;max-height:220px;overflow-y:auto;"></div>
+      </div>
+
+      <div id="panel-list">
+        <div class="active-roads-header">
+          <span style="color:var(--orange);">●</span> Open Tickets ({{ active_roads|length }})
+        </div>
+        {% for seg in active_roads %}
+        <div class="active-road-item" onclick="zoomToRoad('{{ seg.segment_id }}')">
+          <div class="road-status-dot" style="background:var(--orange);"></div>
+          <div>
+            <div class="active-road-name">{{ seg|display_name }}</div>
+            <div class="active-road-meta">{{ seg.last_updated.strftime('%b %d') if seg.last_updated else '' }}</div>
+          </div>
+        </div>
+        {% else %}
+        <div style="padding:20px;text-align:center;color:var(--slate-light);font-size:13px;">No open tickets.</div>
+        {% endfor %}
+      </div>
+
+      <div id="panel-detail" class="road-detail-panel">
+        <div class="detail-header">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <h3 id="detail-road-name" style="font-size:24px;font-weight:900;font-family:'Barlow Condensed',sans-serif;line-height:1.05;color:#FFFFFF;letter-spacing:0.01em;text-shadow:0 1px 3px rgba(0,0,0,0.5);">Road</h3>
+            <button onclick="closeDetail()" style="background:rgba(255,255,255,0.15);border:none;color:var(--cream);cursor:pointer;border-radius:4px;padding:4px 10px;font-size:13px;font-weight:700;">✕</button>
+          </div>
+          <div class="detail-rating">
+            <div id="detail-color-dot" style="width:12px;height:12px;border-radius:50%;background:#888;flex-shrink:0;"></div>
+            <span id="detail-rating-text">—</span>
+          </div>
+        </div>
+        <div class="detail-body">
+          <!-- Fix 7: Quick rating update panel -->
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--cream);">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-light);margin-bottom:8px;">Change Road Rating</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;" id="rating-buttons"></div>
+          </div>
+          <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--cream);">
+            <a id="detail-full-link" href="#" class="btn btn-primary btn-sm">🔧 Open Full Maintenance Log</a>
+          </div>
+          <div class="timeline" id="detail-timeline">
+            <p style="text-align:center;padding:24px;color:var(--slate-light);">Click a road to load its history.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Fix 1: Re-auth confirm modal -->
+<div id="reauth-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);overflow:hidden;">
+    <div style="background:var(--dirt);color:var(--cream);padding:18px 24px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--straw);margin-bottom:4px;">Confirm Rating Change</div>
+      <div style="font-size:16px;font-weight:700;">Change <span id="reauth-road-name" style="color:var(--straw);"></span> to <span id="reauth-new-rating" style="font-weight:900;"></span>?</div>
+    </div>
+    <div style="padding:24px;">
+      <p style="font-size:14px;color:var(--slate);margin-bottom:18px;">This will update the road condition on the map and create a permanent log entry. Enter your credentials to confirm.</p>
+      <input type="hidden" id="reauth-segid">
+      <input type="hidden" id="reauth-paser">
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px;">Username</label>
+        <input type="text" id="reauth-username" class="form-control" autocomplete="username">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:13px;font-weight:700;margin-bottom:5px;">Password</label>
+        <div style="position:relative;">
+          <input type="password" id="reauth-password" class="form-control" autocomplete="current-password" style="padding-right:44px;"
+            onkeydown="if(event.key==='Enter')submitRatingChange()">
+          <button type="button" onclick="toggleReauthPw()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;" id="reauth-pw-toggle">👁</button>
+        </div>
+      </div>
+      <div id="reauth-error" style="display:none;background:var(--red-light);color:var(--red);padding:8px 12px;border-radius:6px;font-size:13px;font-weight:600;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="submitRatingChange()" class="btn btn-primary" style="flex:1;justify-content:center;">✅ Confirm Change</button>
+        <button onclick="closeReauth()" class="btn btn-outline">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COLOR_HEX   = { green:'#2E7D32', yellow:'#F9A825', red:'#C62828', grey:'#9E9E9E' };
+const COLOR_LABEL = { green:'Good', yellow:'Fair', red:'Poor', grey:'Unrated' };
+const ENTRY_ICON  = { assessment:'📡', maintenance:'🔧', rating_update:'⭐', complaint_resolved:'✅', note:'📝', inspection:'🔍' };
+
+const map = L.map('map').setView([39.63, -94.35], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap', maxZoom: 19
+}).addTo(map);
+
+let roadsLayer = null, layerMap = {}, activeSegId = null, activeProps = null;
+
+fetch('/api/internal/roads')
+  .then(r => r.json())
+  .then(gj => {
+    if (!gj.features || !gj.features.length) return;
+
+    roadsLayer = L.geoJSON(gj, {
+      style: f => ({
+        color: f.properties.color_hex || '#888',
+        weight: 6,
+        opacity: 0.9
+      }),
+      onEachFeature: (f, layer) => {
+        const sid = f.properties.segment_id;
+        layerMap[sid] = layer;
+        layer.on('click', () => openDetail(sid, f.properties, layer));
+        layer.on('mouseover', () => { if (sid !== activeSegId) layer.setStyle({weight:9,opacity:1}); });
+        layer.on('mouseout',  () => { if (sid !== activeSegId) roadsLayer.resetStyle(layer); });
+      }
+    }).addTo(map);
+
+    // Ticket overlay
+    L.geoJSON(gj, {
+      filter: f => f.properties.has_open_ticket,
+      style: () => ({ color:'#FF6B00', weight:5, opacity:0.9, dashArray:'8,5', fill:false }),
+      interactive: false
+    }).addTo(map);
+
+    if (roadsLayer.getBounds().isValid()) map.fitBounds(roadsLayer.getBounds(), { padding:[20,20] });
+  });
+
+function openDetail(segId, props, layer) {
+  if (activeSegId && layerMap[activeSegId] && roadsLayer) roadsLayer.resetStyle(layerMap[activeSegId]);
+  activeSegId = segId;
+  activeProps = props;
+  if (layer) layer.setStyle({ weight:6, opacity:1 });
+
+  document.getElementById('panel-list').style.display = 'none';
+  document.getElementById('panel-detail').classList.add('active');
+  document.getElementById('detail-road-name').textContent = props.road_name || segId;
+  document.getElementById('detail-color-dot').style.background = props.color_hex || '#888';
+  document.getElementById('detail-rating-text').textContent =
+    COLOR_LABEL[props.current_color] || 'Unknown' +
+    (props.current_rating ? ` (PASER ${props.current_rating})` : '');
+  document.getElementById('detail-full-link').href = `/internal/road/${encodeURIComponent(segId)}`;
+
+  // 3 rating buttons — click triggers re-auth confirm dialog
+  const RATINGS = [
+    { value:'good', paser:4, label:'Good', color:'#2E7D32', bg:'#E8F5E9' },
+    { value:'fair', paser:3, label:'Fair', color:'#7A5F00', bg:'#FFFDE7' },
+    { value:'poor', paser:2, label:'Poor', color:'#B71C1C', bg:'#FFEBEE' }
+  ];
+  const currentColor = props.current_color || 'grey';
+  document.getElementById('rating-buttons').innerHTML = RATINGS.map(r => `
+    <button onclick="confirmRatingChange('${segId}', ${r.paser}, '${r.label}', '${r.color}')"
+      style="flex:1;padding:8px 4px;font-size:14px;font-weight:800;border-radius:6px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.04em;
+             background:${r.bg};color:${r.color};border:2px solid ${currentColor===r.value?r.color:'transparent'};
+             ${currentColor===r.value?'box-shadow:0 0 0 2px '+r.color+';':''}"
+    >${r.label}</button>`).join('');
+
+  document.getElementById('detail-timeline').innerHTML =
+    '<p style="text-align:center;padding:20px;color:var(--slate-light);">Loading...</p>';
+
+  fetch(`/api/internal/road/${encodeURIComponent(segId)}`)
+    .then(r => r.json())
+    .then(data => {
+      const tl = document.getElementById('detail-timeline');
+      if (!data.log || !data.log.length) {
+        tl.innerHTML = '<p style="padding:16px;color:var(--slate-light);font-size:13px;">No history yet.</p>';
+        return;
+      }
+      tl.innerHTML = data.log.slice(0, 8).map(e => `
+        <div class="timeline-entry">
+          <div class="timeline-dot ${e.is_initial?'dot-assessment':'dot-maintenance'}">${ENTRY_ICON[e.entry_type]||'📋'}</div>
+          <div class="timeline-content">
+            <div class="timeline-date">${e.date}</div>
+            <div class="timeline-title">${e.work_type||e.entry_type}</div>
+            <div class="timeline-desc" style="font-size:12px;">${e.description.substring(0,120)}${e.description.length>120?'…':''}</div>
+          </div>
+        </div>`).join('');
+    });
+}
+
+function updateRating(segId, paser) {
+  fetch(`/internal/road/${encodeURIComponent(segId)}/rate`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body: `rating=${paser}`
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      // Update visible road color on map
+      const layer = layerMap[segId];
+      if (layer && roadsLayer) {
+        layer.setStyle({ color: data.color_hex || '#888', weight:5, opacity:0.9 });
+        if (activeProps) {
+          activeProps.current_color = data.new_color;
+          activeProps.current_rating = data.new_rating;
+          activeProps.color_hex = data.color_hex;
+        }
+      }
+      document.getElementById('detail-color-dot').style.background = data.color_hex || '#888';
+      document.getElementById('detail-rating-text').textContent =
+        data.new_label + ` · PASER ${data.new_rating}`;
+      // Refresh to show new timeline entry
+      if (activeProps) openDetail(segId, activeProps, null);
+    }
+  });
+}
+
+function closeDetail() {
+  if (activeSegId && layerMap[activeSegId] && roadsLayer) roadsLayer.resetStyle(layerMap[activeSegId]);
+  activeSegId = null;
+  document.getElementById('panel-detail').classList.remove('active');
+  document.getElementById('panel-list').style.display = 'block';
+}
+
+function zoomToRoad(segId) {
+  const layer = layerMap[segId];
+  if (!layer) return;
+  if (layer.getBounds) map.fitBounds(layer.getBounds(), { padding:[40,40] });
+  layer.fire('click');
+}
+</script>
+{% endblock %}

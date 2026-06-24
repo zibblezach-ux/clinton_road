@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}Staff Login — Clinton County{% endblock %}
+{% block content %}
+<div class="login-wrap">
+  <div class="login-mark">
+    <div style="font-size:52px;">🔒</div>
+    <h1>Staff Login</h1>
+    <p style="color:var(--slate-light);font-size:14px;">Clinton County Road & Bridge Department</p>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-control" autofocus required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div style="position:relative;">
+            <input type="password" name="password" class="form-control" id="password-field" required style="padding-right:48px;">
+            <button type="button" onclick="togglePw()" id="pw-toggle"
+              style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--slate-light);font-size:18px;line-height:1;padding:0;">
+              👁
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;font-size:17px;">Sign In →</button>
+      </form>
+    </div>
+  </div>
+  <p style="text-align:center;margin-top:16px;font-size:13px;">
+    <a href="{{ url_for('index') }}" style="color:var(--tan);">← Back to public site</a>
+  </p>
+</div>
+<script>
+function togglePw() {
+  var f = document.getElementById('password-field');
+  var b = document.getElementById('pw-toggle');
+  if (f.type === 'password') { f.type = 'text'; b.textContent = '🙈'; }
+  else { f.type = 'password'; b.textContent = '👁'; }
+}
+</script>
+{% endblock %}

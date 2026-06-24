@@ -1,0 +1,364 @@
+{% extends 'base.html' %}
+{% block title %}Road & Bridge Maintenance Activity — Clinton County{% endblock %}
+
+{% block content %}
+<div class="map-container">
+  <div id="map"></div>
+
+  <div class="map-sidebar">
+    <div class="map-sidebar-header">
+      <h2>🔧 Maintenance Activity</h2>
+      <p>Click any road to see its full history</p>
+    </div>
+
+    <div class="map-legend">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-light);margin-bottom:8px;">Road Condition</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#2E7D32;"></div> Good condition</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#F9A825;"></div> Fair condition</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#C62828;"></div> Poor condition</div>
+      <div class="legend-row"><div class="legend-swatch" style="background:#888;"></div> Unrated</div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-light);margin-bottom:8px;">Open Ticket</div>
+      <div class="legend-row">
+        <div style="width:28px;height:0;border-top:4px dashed #FF6B00;flex-shrink:0;margin-top:3px;"></div>
+        Open complaint on this road
+      </div>
+    </div>
+
+    <!-- Fix 1: Road search box -->
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--warm-white);position:relative;">
+      <div style="position:relative;">
+        <input type="text" id="road-search" placeholder="Search by road name..." autocomplete="off"
+          style="width:100%;padding:9px 14px 9px 36px;border:2px solid var(--border);border-radius:var(--radius-sm);
+                 font-family:'Barlow',sans-serif;font-size:14px;background:#fff;color:var(--dirt);">
+        <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;">🔍</span>
+      </div>
+      <div id="search-results" style="display:none;position:absolute;left:16px;right:16px;background:#fff;border:1px solid var(--border);
+           border-radius:var(--radius-sm);box-shadow:var(--shadow-lg);z-index:2000;max-height:220px;overflow-y:auto;"></div>
+    </div>
+
+    <div id="panel-list">
+      <!-- PUBLIC DASHBOARD -->
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--warm-white);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate);margin-bottom:12px;">County Road Summary</div>
+
+        <!-- Condition bar -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--slate-light);font-weight:600;margin-bottom:4px;">
+            <span>Road Conditions</span>
+            <span>{{ total }} segments</span>
+          </div>
+          {% if total > 0 %}
+          <div style="display:flex;height:10px;border-radius:5px;overflow:hidden;gap:1px;">
+            {% if green %}<div style="background:#2E7D32;flex:{{ green }};min-width:2px;" title="{{ green }} Good"></div>{% endif %}
+            {% if yellow %}<div style="background:#F9A825;flex:{{ yellow }};min-width:2px;" title="{{ yellow }} Fair"></div>{% endif %}
+            {% if red %}<div style="background:#C62828;flex:{{ red }};min-width:2px;" title="{{ red }} Poor"></div>{% endif %}
+          </div>
+          <div style="display:flex;gap:12px;margin-top:6px;">
+            <div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#2E7D32;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#2E7D32;"></div>{{ green }} Good
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#7A5F00;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#F9A825;"></div>{{ yellow }} Fair
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:#C62828;">
+              <div style="width:8px;height:8px;border-radius:50%;background:#C62828;"></div>{{ red }} Poor
+            </div>
+          </div>
+          {% else %}
+          <div style="font-size:12px;color:var(--slate-light);">No road data loaded yet.</div>
+          {% endif %}
+        </div>
+
+        <!-- Ticket totals -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-light);margin-bottom:8px;">Maintenance Tickets</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <div style="background:var(--red-light);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;">
+              <div style="font-size:22px;font-weight:900;font-family:'Barlow Condensed',sans-serif;color:var(--red);line-height:1;">{{ open_complaints }}</div>
+              <div style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:0.04em;">Open</div>
+            </div>
+            <div style="background:var(--yellow-light);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;">
+              <div style="font-size:22px;font-weight:900;font-family:'Barlow Condensed',sans-serif;color:#7A5F00;line-height:1;">{{ in_progress }}</div>
+              <div style="font-size:10px;font-weight:700;color:#7A5F00;text-transform:uppercase;letter-spacing:0.04em;">In Progress</div>
+            </div>
+            <div style="background:var(--green-light);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;">
+              <div style="font-size:22px;font-weight:900;font-family:'Barlow Condensed',sans-serif;color:var(--green);line-height:1;">{{ resolved_complaints }}</div>
+              <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:0.04em;">Resolved</div>
+            </div>
+          </div>
+          <div style="text-align:right;font-size:11px;color:var(--slate-light);margin-top:5px;">{{ total_complaints }} total tickets submitted</div>
+        </div>
+
+        <!-- Open complaints stat -->
+        {% if open_complaints > 0 %}
+        <div style="background:var(--orange-light);border-radius:var(--radius-sm);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:13px;font-weight:700;color:var(--orange);">⚠️ Roads with open tickets</span>
+          <span style="font-size:20px;font-weight:900;font-family:'Barlow Condensed',sans-serif;color:var(--orange);">{{ active_roads|length }}</span>
+        </div>
+        {% endif %}
+
+        <!-- Recent activity -->
+        {% if recent_logs %}
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-light);margin-bottom:6px;">Recent Maintenance</div>
+        {% for log in recent_logs %}
+        <div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-weight:700;color:var(--dirt);">{{ log.road|display_name if log.road else log.segment_id }}</div>
+            <div style="color:var(--slate-light);">{{ log.work_type or log.entry_type }}</div>
+          </div>
+          <div style="color:var(--slate-light);font-size:11px;white-space:nowrap;margin-left:8px;">{{ log.log_date.strftime('%b %d') }}</div>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+
+      <div class="active-roads-header">
+        <span style="color:var(--orange);">●</span>
+        Open Tickets ({{ active_roads|length }})
+      </div>
+      {% if active_roads %}
+        {% for seg in active_roads %}
+        <div class="active-road-item" onclick="zoomToRoad('{{ seg.segment_id }}')">
+          <div class="road-status-dot" style="background:var(--orange);"></div>
+          <div>
+            <div class="active-road-name">{{ seg|display_name }}</div>
+            <div class="active-road-meta">Updated {{ seg.last_updated.strftime('%b %d') if seg.last_updated else '—' }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:24px 20px;text-align:center;color:var(--slate-light);font-size:14px;">
+          <div style="font-size:32px;margin-bottom:8px;">✅</div>
+          No open tickets.
+        </div>
+      {% endif %}
+
+      <div style="padding:16px 20px;border-top:1px solid var(--border);">
+        <a href="{{ url_for('report') }}" class="btn btn-red" style="width:100%;justify-content:center;">
+          📢 Report a Road Problem
+        </a>
+      </div>
+    </div>
+
+    <div id="panel-detail" class="road-detail-panel">
+      <div class="detail-header" style="background:#1A1208;padding:18px 20px;">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px;">
+          <h3 id="detail-road-name" style="font-size:24px;font-weight:900;font-family:'Barlow Condensed',sans-serif;line-height:1.05;color:#FFFFFF;letter-spacing:0.01em;text-shadow:0 1px 3px rgba(0,0,0,0.5);">Road</h3>
+          <button onclick="closeDetail()" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.3);color:#fff;cursor:pointer;border-radius:5px;padding:5px 12px;font-size:13px;font-weight:700;flex-shrink:0;line-height:1;">✕</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div id="detail-color-dot" style="width:16px;height:16px;border-radius:50%;background:#888;flex-shrink:0;border:2px solid rgba(255,255,255,0.4);"></div>
+          <span id="detail-rating-text" style="font-size:16px;font-weight:700;color:#F0EBE0;">—</span>
+        </div>
+      </div>
+      <div class="detail-body">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);background:var(--cream);">
+          <a href="#" id="detail-report-link" class="btn btn-red btn-sm">📢 Report a Problem on This Road</a>
+        </div>
+        <div id="detail-complaints" style="display:none;padding:12px 16px;background:var(--orange-light);border-bottom:1px solid rgba(212,112,58,0.2);">
+          <div style="font-weight:800;color:var(--orange);font-family:'Barlow Condensed',sans-serif;font-size:14px;margin-bottom:6px;">⚠️ OPEN TICKETS</div>
+          <div id="detail-complaints-list"></div>
+        </div>
+        <div class="timeline" id="detail-timeline">
+          <p style="color:var(--slate-light);font-size:13px;text-align:center;padding:24px 0;">Click a road to load its history.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const COLOR_HEX   = { green:'#2E7D32', yellow:'#F9A825', red:'#C62828', grey:'#9E9E9E' };
+const COLOR_LABEL = { green:'Good Condition', yellow:'Fair Condition', red:'Poor Condition', grey:'Unrated' };
+const ENTRY_ICON  = { assessment:'📡', maintenance:'🔧', rating_update:'⭐', complaint_resolved:'✅', note:'📝', inspection:'🔍' };
+const ENTRY_DOT   = { assessment:'dot-assessment', maintenance:'dot-maintenance', rating_update:'dot-rating', complaint_resolved:'dot-complaint', note:'dot-note' };
+
+// Fix 6: Use OpenStreetMap standard tiles — correct basemap for Clinton County MO
+const map = L.map('map', { zoomControl: true }).setView([39.63, -94.35], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+  maxZoom: 19
+}).addTo(map);
+
+let roadsLayer = null, layerMap = {}, activeSegId = null;
+
+fetch('/api/public/activity')
+  .then(r => r.json())
+  .then(gj => {
+    if (!gj.features || !gj.features.length) {
+      document.getElementById('detail-timeline').innerHTML =
+        '<p style="padding:20px;color:var(--slate-light);font-size:13px;text-align:center;">⚠️ No road data yet. Place GeoJSON in data/ and seed the database.</p>';
+      document.getElementById('panel-detail').classList.add('active');
+      return;
+    }
+
+    // Roads layer — thick enough to click easily, click handlers directly on each road
+    roadsLayer = L.geoJSON(gj, {
+      style: f => ({
+        color: f.properties.color_hex || '#888',
+        weight: 6,
+        opacity: 0.9
+      }),
+      onEachFeature: (f, layer) => {
+        const sid = f.properties.segment_id;
+        layerMap[sid] = layer;
+        layer.on('click', () => openDetail(sid, f.properties, layer));
+        // Wide invisible hit area on top
+        layer.on('mouseover', () => { if (sid !== activeSegId) layer.setStyle({weight:9,opacity:1}); });
+        layer.on('mouseout',  () => { if (sid !== activeSegId) roadsLayer.resetStyle(layer); });
+      }
+    }).addTo(map);
+
+    // Fix 8: Draw open-ticket roads with a bright orange dashed overlay on top
+    L.geoJSON(gj, {
+      filter: f => f.properties.has_open_ticket,
+      style: () => ({
+        color: '#FF6B00',
+        weight: 5,
+        opacity: 0.9,
+        dashArray: '8,5',
+        fill: false
+      }),
+      interactive: false
+    }).addTo(map);
+
+    if (roadsLayer.getBounds().isValid()) {
+      map.fitBounds(roadsLayer.getBounds(), { padding: [20, 20] });
+    }
+  });
+
+function openDetail(segId, props, layer) {
+  if (activeSegId && layerMap[activeSegId]) roadsLayer.resetStyle(layerMap[activeSegId]);
+  activeSegId = segId;
+  if (layer) layer.setStyle({ weight: 6, opacity: 1 });
+
+  document.getElementById('panel-list').style.display = 'none';
+  document.getElementById('panel-detail').classList.add('active');
+
+  // Fix 2: Show actual road name
+  document.getElementById('detail-road-name').textContent = props.road_name || segId;
+  document.getElementById('detail-color-dot').style.background = props.color_hex || '#888';
+  // Show Good/Fair/Poor only — no PASER in public view
+  const ratingLabel = props.color_label || COLOR_LABEL[props.current_color] || 'Unknown';
+  document.getElementById('detail-rating-text').textContent = ratingLabel;
+
+  document.getElementById('detail-report-link').href =
+    `/report?road=${encodeURIComponent(props.road_name||'')}&segment_id=${encodeURIComponent(segId)}`;
+
+  document.getElementById('detail-timeline').innerHTML =
+    '<p style="text-align:center;padding:20px;color:var(--slate-light);">Loading...</p>';
+  document.getElementById('detail-complaints').style.display = 'none';
+
+  fetch(`/api/public/road/${encodeURIComponent(segId)}`)
+    .then(r => r.json())
+    .then(renderDetail)
+    .catch(() => {
+      document.getElementById('detail-timeline').innerHTML =
+        '<p style="padding:16px;color:var(--red);">Failed to load road data.</p>';
+    });
+}
+
+function renderDetail(data) {
+  const complaintsEl = document.getElementById('detail-complaints');
+  if (data.open_complaints && data.open_complaints.length) {
+    complaintsEl.style.display = 'block';
+    document.getElementById('detail-complaints-list').innerHTML =
+      data.open_complaints.map(c => `
+        <div style="font-size:13px;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid rgba(212,112,58,0.2);">
+          <strong>${c.category}</strong> — ${c.status}<br>
+          <span style="color:var(--slate-light);font-size:12px;">${c.description}</span><br>
+          <span style="font-size:11px;color:var(--slate-light);">Ref: ${c.id} · ${c.date}</span>
+        </div>`).join('');
+  }
+
+  const tl = document.getElementById('detail-timeline');
+  if (!data.log || !data.log.length) {
+    tl.innerHTML = '<p style="padding:20px;text-align:center;color:var(--slate-light);">No history on record.</p>';
+    return;
+  }
+
+  tl.innerHTML = data.log.map(e => {
+    const dotClass = ENTRY_DOT[e.entry_type] || 'dot-note';
+    const icon = ENTRY_ICON[e.entry_type] || '📋';
+    let ratingBadge = '';
+    if (e.new_rating) {
+      const c = e.new_rating >= 4 ? 'var(--green)' : e.new_rating === 3 ? '#7A5F00' : 'var(--red)';
+      const b = e.new_rating >= 4 ? 'var(--green-light)' : e.new_rating === 3 ? 'var(--yellow-light)' : 'var(--red-light)';
+      const l = e.new_rating >= 4 ? 'Good' : e.new_rating === 3 ? 'Fair' : 'Poor';
+      ratingBadge = `<div class="timeline-rating-badge" style="background:${b};color:${c};">PASER ${e.new_rating} — ${l}</div>`;
+    }
+    let meta = [e.crew, e.equipment, e.materials, e.logged_by ? `Logged by ${e.logged_by}` : ''].filter(Boolean);
+    return `
+      <div class="timeline-entry">
+        <div class="timeline-dot ${dotClass}">${icon}</div>
+        <div class="timeline-content">
+          <div class="timeline-date">${e.date}</div>
+          <div class="timeline-title">${e.work_type || e.entry_type}</div>
+          <div class="timeline-desc">${e.description}</div>
+          ${ratingBadge}
+          ${meta.length ? `<div class="timeline-meta">${meta.join(' · ')}</div>` : ''}
+          ${e.is_initial ? '<div style="font-size:11px;color:var(--slate-light);font-style:italic;margin-top:4px;">Initial assessment — reference data</div>' : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function closeDetail() {
+  if (activeSegId && layerMap[activeSegId] && roadsLayer) roadsLayer.resetStyle(layerMap[activeSegId]);
+  activeSegId = null;
+  document.getElementById('panel-detail').classList.remove('active');
+  document.getElementById('panel-list').style.display = 'block';
+}
+
+function zoomToRoad(segId) {
+  const layer = layerMap[segId];
+  if (!layer) return;
+  if (layer.getBounds) map.fitBounds(layer.getBounds(), { padding: [60, 60] });
+  layer.fire('click');
+}
+
+// Fix 1: Search functionality
+let searchTimeout = null;
+document.getElementById('road-search').addEventListener('input', function() {
+  clearTimeout(searchTimeout);
+  const q = this.value.trim();
+  const results = document.getElementById('search-results');
+  if (q.length < 2) { results.style.display = 'none'; return; }
+  searchTimeout = setTimeout(() => {
+    fetch(`/api/public/search?q=${encodeURIComponent(q)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!data.length) { results.style.display = 'none'; return; }
+        results.style.display = 'block';
+        results.innerHTML = data.map(r => `
+          <div onclick="selectSearchResult('${r.segment_id}', '${r.road_name.replace(/'/g,"\'")}')"
+            style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;"
+            onmouseover="this.style.background='var(--cream)'" onmouseout="this.style.background='#fff'">
+            <div style="width:10px;height:10px;border-radius:50%;background:${
+              r.current_color==='green'?'#2E7D32':r.current_color==='yellow'?'#F9A825':r.current_color==='red'?'#C62828':'#888'
+            };flex-shrink:0;"></div>
+            <div>
+              <div style="font-weight:700;font-size:14px;color:var(--dirt);">${r.road_name}</div>
+              <div style="font-size:12px;color:var(--slate-light);">${r.color_label}${r.has_open_ticket?' · Open ticket':''}</div>
+            </div>
+          </div>`).join('');
+      });
+  }, 250);
+});
+
+function selectSearchResult(segId, roadName) {
+  document.getElementById('road-search').value = roadName;
+  document.getElementById('search-results').style.display = 'none';
+  zoomToRoad(segId);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#road-search') && !e.target.closest('#search-results')) {
+    document.getElementById('search-results').style.display = 'none';
+  }
+});
+</script>
+{% endblock %}
