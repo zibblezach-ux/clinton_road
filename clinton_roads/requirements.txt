@@ -4,4 +4,3 @@ flask-login==0.6.3
 werkzeug==3.0.3
 gunicorn==22.0.0
 apscheduler==3.10.4
-shapely==2.0.4
